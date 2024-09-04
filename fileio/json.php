@@ -56,20 +56,30 @@ class Red_Json_File extends Red_FileIO {
 		if ( isset( $json['redirects'] ) ) {
 			foreach ( $json['redirects'] as $pos => $redirect ) {
 				unset( $redirect['id'] );
-
+		
+				// Check if the group ID already exists in the group map
 				if ( ! isset( $group_map[ $redirect['group_id'] ] ) ) {
-					$new_group = Red_Group::create( 'Group', 1 );
-					$group_map[ $redirect['group_id'] ] = $new_group->get_id();
+					// Use the get method to check if the group exists in the database by its ID
+					$existing_group = Red_Group::get( $redirect['group_id'] );
+		
+					if ( $existing_group ) {
+						// If the group exists, store its ID in the group map for later use
+						$group_map[ $redirect['group_id'] ] = $existing_group->get_id();
+					} else {
+						// If the group does not exist, create a new group
+						$new_group = Red_Group::create( 'Group', 1 );
+						$group_map[ $redirect['group_id'] ] = $new_group->get_id();
+					}
 				}
-
+		
 				if ( $redirect['match_type'] === 'url' && isset( $redirect['action_data'] ) && ! is_array( $redirect['action_data'] ) ) {
 					$redirect['action_data'] = array( 'url' => $redirect['action_data'] );
 				}
-
+		
 				$redirect['group_id'] = $group_map[ $redirect['group_id'] ];
 				Red_Item::create( $redirect );
 				$count++;
-
+		
 				// Helps reduce memory usage
 				unset( $json['redirects'][ $pos ] );
 				$wpdb->queries = array();
